@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body { font-family: Arial; padding:20px; background:#f4f6f8; }
+.container { max-width:400px; margin:auto; background:white; padding:20px; border-radius:10px; }
+button { width:100%; padding:10px; background:#007bff; color:white; border:none; margin-top:10px; border-radius:5px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>Vpis v urnik</h2>
+
+<label>Ime:</label>
+<input type="text" id="name" style="width:100%;padding:5px;">
+
+<label>Datum:</label>
+<input type="date" id="date" style="width:100%;padding:5px;">
+
+<label>Izmena:</label>
+<select id="shift" style="width:100%;padding:5px;">
+<option>Dopoldne</option>
+<option>Popoldne</option>
+<option>Nočna</option>
+</select>
+
+<button onclick="sendData()">Prijavi se</button>
+
+<p id="msg"></p>
+</div>
+
+<script>
+const scriptURL = "https://script.google.com/macros/library/d/126vloAIGjBtabTzGULgbWr13S99z3NDUJttGjARgQ33M8wvnPN4f68fO/1";
+
+function sendData() {
+  const name = document.getElementById("name").value;
+  const date = document.getElementById("date").value;
+  const shift = document.getElementById("shift").value;
+
+  fetch(scriptURL, {
+    method: "POST",
+    body: JSON.stringify({ name, date, shift })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "full") {
+      document.getElementById("msg").innerHTML =
+        "Izmena je že polna (10 oseb).";
+    } else {
+      document.getElementById("msg").innerHTML =
+        "Uspešno prijavljen!";
+    }
+  });
+}
+</script>
+
+</body>
+</html>
