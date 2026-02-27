@@ -9,8 +9,8 @@
   table { border-collapse: collapse; width: 100%; margin-top: 20px; }
   th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
   th { background-color: #f2f2f2; }
-  .full { background-color: #f8d7da; }
-  .available { background-color: #d4edda; }
+  .full { background-color: #f8d7da; } /* rdeča za polno */
+  .available { background-color: #d4edda; } /* zelena za prosto */
 </style>
 </head>
 <body>
@@ -46,7 +46,7 @@
 </table>
 
 <script>
-const scriptURL = "https://script.google.com/macros/s/AKfycbyl-2bPvB9bGiqcJd7RIpEFP8BPECvSBL3vmKKg59w67YQe6y6yTloOQgrLfK6wABWx/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbxjbUVzf0ToZf0CUEPIFYiqXF4JPjQjfXqx5kYhAupdCJfQP0DPDW6x2e33_9RmEhGu/exec";
 
 // Omejitve izmen
 function maxPeople(dateStr, shift) {
@@ -60,9 +60,10 @@ function maxPeople(dateStr, shift) {
   return 10; // med tednom
 }
 
-// Zaenkrat prazni podatki, kasneje lahko naložiš iz Sheet-a
+// Tabela v spominu
 let schedule = {}; // { '2026-02-27': {dopoldanska: [], popoldanska: [], nočna: []} }
 
+// Posodobi tabelo
 function updateTable() {
   const tbody = document.querySelector("#scheduleTable tbody");
   tbody.innerHTML = "";
@@ -82,13 +83,14 @@ function updateTable() {
   });
 }
 
-// Dodamo nov datum v schedule če še ne obstaja
+// Dodamo datum v schedule, če še ne obstaja
 function ensureDate(date) {
   if (!schedule[date]) {
     schedule[date] = {dopoldanska: [], popoldanska: [], "nočna": []};
   }
 }
 
+// Form submit handler
 document.getElementById("shiftForm").addEventListener("submit", e => {
   e.preventDefault();
   const form = e.target;
@@ -109,11 +111,11 @@ document.getElementById("shiftForm").addEventListener("submit", e => {
     return;
   }
 
-  // Dodamo zaposlenega
+  // Dodaj zaposlenega
   schedule[datum][izmena].push(ime);
   updateTable();
 
-  // Pošljemo v Google Sheet
+  // Pošlji v Google Sheet
   const formData = new FormData();
   formData.append("ime", ime);
   formData.append("datum", datum);
@@ -127,7 +129,7 @@ document.getElementById("shiftForm").addEventListener("submit", e => {
   form.reset();
 });
 
-// Za prikaz tekočega tedna dodamo 7 dni
+// Pripravi pregled tekočega tedna
 const today = new Date();
 for (let i = 0; i < 7; i++) {
   const d = new Date(today);
