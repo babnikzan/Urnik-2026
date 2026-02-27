@@ -1,81 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="sl">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prijava v izmeno</title>
 <style>
-body { font-family: Arial; padding:20px; background:#f4f6f8; }
-.container { max-width:400px; margin:auto; background:white; padding:20px; border-radius:10px; }
-button { width:100%; padding:10px; background:#007bff; color:white; border:none; margin-top:10px; border-radius:5px; cursor:pointer; }
-button:disabled { background:grey; cursor:default; }
-input, select { width:100%; padding:5px; margin-top:5px; margin-bottom:10px; }
-#msg { margin-top:10px; font-weight:bold; color:green; }
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background-color: #f2f2f2; }
+  .full { background-color: #f8d7da; }
+  .available { background-color: #d4edda; }
 </style>
 </head>
 <body>
 
-<div class="container">
-<h2>Vpis v urnik</h2>
+<h1>Prijava v izmeno</h1>
 
-<label>Ime:</label>
-<input type="text" id="name" placeholder="Vnesi ime">
+<form id="shiftForm">
+  <label>Ime in priimek: <input type="text" name="ime" required></label><br><br>
+  <label>Datum: <input type="date" name="datum" required></label><br><br>
+  <label>Izmena:
+    <select name="izmena" required>
+      <option value="dopoldanska">Dopoldanska</option>
+      <option value="popoldanska">Popoldanska</option>
+      <option value="nočna">Nočna</option>
+    </select>
+  </label><br><br>
+  <button type="submit">Prijavi se</button>
+</form>
 
-<label>Datum:</label>
-<input type="date" id="date">
-
-<label>Izmena:</label>
-<select id="shift">
-<option>Dopoldne</option>
-<option>Popoldne</option>
-<option>Nočna</option>
-</select>
-
-<button id="submitBtn" onclick="sendData()">Prijavi se</button>
-
-<p id="msg"></p>
-</div>
+<h2>Pregled izmen</h2>
+<table id="scheduleTable">
+  <thead>
+    <tr>
+      <th>Datum</th>
+      <th>Dopoldanska</th>
+      <th>Popoldanska</th>
+      <th>Nočna</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Dinamično se bo napolnilo -->
+  </tbody>
+</table>
 
 <script>
 const scriptURL = "https://script.google.com/macros/s/AKfycbyl-2bPvB9bGiqcJd7RIpEFP8BPECvSBL3vmKKg59w67YQe6y6yTloOQgrLfK6wABWx/exec";
 
-function sendData() {
-    const name = document.getElementById("name").value.trim();
-    const date = document.getElementById("date").value;
-    const shift = document.getElementById("shift").value;
-    const msg = document.getElementById("msg");
-    const btn = document.getElementById("submitBtn");
-
-    if (!name || !date) {
-        msg.style.color = "red";
-        msg.innerText = "Prosim izpolni vse podatke!";
-        return;
-    }
-
-    btn.disabled = true;
-    msg.style.color = "black";
-    msg.innerText = "Pošiljanje...";
-
-    fetch(scriptURL, {
-        method: "POST",
-        body: JSON.stringify({ name, date, shift })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === "full") {
-            msg.style.color = "red";
-            msg.innerText = "Izmena je že polna (10 oseb).";
-        } else {
-            msg.style.color = "green";
-            msg.innerText = "Uspešno prijavljen!";
-        }
-        btn.disabled = false;
-    })
-    .catch(err => {
-        msg.style.color = "red";
-        msg.innerText = "Napaka pri pošiljanju. Preveri URL Web App.";
-        btn.disabled = false;
-        console.error(err);
-    });
+// Omejitve izmen
+function maxPeople(dateStr, shift) {
+  const date = new Date(dateStr);
+  const day = date.getDay(); // 0=nedelja, 6=sobota
+  if (day === 0 || day === 6) { // vikend
+    if (shift === "dopoldanska") return 8;
+    if (shift === "popoldanska") return 7;
+    return 10;
+  }
+  return 10; // med tednom
 }
+
+// Zaenkrat prazni podatki, kasneje lahko naložiš iz Sheet-a
+let schedule = {}; // { '2026-02-27': {dopoldanska: [], popoldanska: [], nočna: []} }
+
+function updateTable() {
+  const tbody = document.querySelector("#scheduleTable tbody");
+  tbody.innerHTML = "";
+  const dates = Object.keys(schedule).sort();
+  dates.forEach(date => {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>${date}</td>`;
+    ["dopoldanska", "popoldanska", "nočna"].forEach(shift => {
+      const names = schedule[date][shift] || [];
+      const max = maxPeople(date, shift);
+      const cell = document.createElement("td");
+      cell.textContent = names.join(", ");
+      cell.className = names.length >= max ? "full" : "available";
+      row.appendChild(cell);
+    });
+    tbody.appendChild(row);
+  });
+}
+
+// Dodamo nov datum v schedule če še ne obstaja
+function ensureDate(date) {
+  if (!schedule[date]) {
+    schedule[date] = {dopoldanska: [], popoldanska: [], "nočna": []};
+  }
+}
+
+document.getElementById("shiftForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const form = e.target;
+  const ime = form.ime.value.trim();
+  const datum = form.datum.value;
+  const izmena = form.izmena.value;
+
+  ensureDate(datum);
+  const max = maxPeople(datum, izmena);
+
+  if (schedule[datum][izmena].includes(ime)) {
+    alert("Ste že prijavljeni za to izmeno.");
+    return;
+  }
+
+  if (schedule[datum][izmena].length >= max) {
+    alert(`Izmena je že polna (max ${max} oseb).`);
+    return;
+  }
+
+  // Dodamo zaposlenega
+  schedule[datum][izmena].push(ime);
+  updateTable();
+
+  // Pošljemo v Google Sheet
+  const formData = new FormData();
+  formData.append("ime", ime);
+  formData.append("datum", datum);
+  formData.append("izmena", izmena);
+
+  fetch(scriptURL, { method: "POST", body: formData })
+    .then(resp => resp.text())
+    .then(data => console.log("Google Sheet:", data))
+    .catch(err => console.error("Napaka pri pošiljanju:", err));
+
+  form.reset();
+});
+
+// Za prikaz tekočega tedna dodamo 7 dni
+const today = new Date();
+for (let i = 0; i < 7; i++) {
+  const d = new Date(today);
+  d.setDate(today.getDate() + i);
+  const dateStr = d.toISOString().split("T")[0];
+  ensureDate(dateStr);
+}
+updateTable();
 </script>
 
 </body>
