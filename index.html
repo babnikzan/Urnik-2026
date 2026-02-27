@@ -5,7 +5,10 @@
 <style>
 body { font-family: Arial; padding:20px; background:#f4f6f8; }
 .container { max-width:400px; margin:auto; background:white; padding:20px; border-radius:10px; }
-button { width:100%; padding:10px; background:#007bff; color:white; border:none; margin-top:10px; border-radius:5px; }
+button { width:100%; padding:10px; background:#007bff; color:white; border:none; margin-top:10px; border-radius:5px; cursor:pointer; }
+button:disabled { background:grey; cursor:default; }
+input, select { width:100%; padding:5px; margin-top:5px; margin-bottom:10px; }
+#msg { margin-top:10px; font-weight:bold; color:green; }
 </style>
 </head>
 <body>
@@ -14,45 +17,65 @@ button { width:100%; padding:10px; background:#007bff; color:white; border:none;
 <h2>Vpis v urnik</h2>
 
 <label>Ime:</label>
-<input type="text" id="name" style="width:100%;padding:5px;">
+<input type="text" id="name" placeholder="Vnesi ime">
 
 <label>Datum:</label>
-<input type="date" id="date" style="width:100%;padding:5px;">
+<input type="date" id="date">
 
 <label>Izmena:</label>
-<select id="shift" style="width:100%;padding:5px;">
+<select id="shift">
 <option>Dopoldne</option>
 <option>Popoldne</option>
 <option>Nočna</option>
 </select>
 
-<button onclick="sendData()">Prijavi se</button>
+<button id="submitBtn" onclick="sendData()">Prijavi se</button>
 
 <p id="msg"></p>
 </div>
 
 <script>
-const scriptURL = "https://script.google.com/macros/library/d/126vloAIGjBtabTzGULgbWr13S99z3NDUJttGjARgQ33M8wvnPN4f68fO/1";
+// Tukaj vpiši tvoj Web App URL
+const scriptURL = "https://script.google.com/macros/s/AKfycbweQm9BYPt0YuS9wUqOr5jRuOfnBu4axjexcOV0efV955i00LYGXB_ONiEK7otJSvD6/exec";
 
 function sendData() {
-  const name = document.getElementById("name").value;
-  const date = document.getElementById("date").value;
-  const shift = document.getElementById("shift").value;
+    const name = document.getElementById("name").value.trim();
+    const date = document.getElementById("date").value;
+    const shift = document.getElementById("shift").value;
+    const msg = document.getElementById("msg");
+    const btn = document.getElementById("submitBtn");
 
-  fetch(scriptURL, {
-    method: "POST",
-    body: JSON.stringify({ name, date, shift })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status === "full") {
-      document.getElementById("msg").innerHTML =
-        "Izmena je že polna (10 oseb).";
-    } else {
-      document.getElementById("msg").innerHTML =
-        "Uspešno prijavljen!";
+    if (!name || !date) {
+        msg.style.color = "red";
+        msg.innerText = "Prosim izpolni vse podatke!";
+        return;
     }
-  });
+
+    btn.disabled = true;
+    msg.style.color = "black";
+    msg.innerText = "Pošiljanje...";
+
+    fetch(scriptURL, {
+        method: "POST",
+        body: JSON.stringify({ name, date, shift })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "full") {
+            msg.style.color = "red";
+            msg.innerText = "Izmena je že polna (10 oseb).";
+        } else {
+            msg.style.color = "green";
+            msg.innerText = "Uspešno prijavljen!";
+        }
+        btn.disabled = false;
+    })
+    .catch(err => {
+        msg.style.color = "red";
+        msg.innerText = "Napaka pri pošiljanju. Preveri URL Web App.";
+        btn.disabled = false;
+        console.error(err);
+    });
 }
 </script>
 
